@@ -1,16 +1,10 @@
-import { useRef, useState } from 'react';
+import React, { useState, useRef, EventHandler } from "react";
+import { getSongs, Song } from "./songs";
 
-import Nav from './components/Nav';
-import Song from './components/Song';
-import Player from './components/Player';
-import Library from './components/Library';
+import { Navbar, PlayerSong, Player, Library } from "./components";
 
-import './styles/app.scss';
-
-import data from './data';
-
-const App = () => {
-  const [songs, setSongs] = useState(data());
+export default function App() {
+  const [songs, setSongs] = useState(getSongs());
   const [songInfo, setSongInfo] = useState({
     currentTime: 0,
     duration: 0,
@@ -19,22 +13,23 @@ const App = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
 
-  const audioRef = useRef(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
-  function playSongHandler() {
+  function playSongHandler(): void {
     if (!isPlaying) {
-      audioRef.current.play();
+      audioRef.current?.play();
     } else {
-      audioRef.current.pause();
+      audioRef.current?.pause();
     }
+
     setIsPlaying(!isPlaying);
   }
 
-  function skipHandler(direction) {
+  function skipHandler(direction: string): void {
     const currentSong = fetchCurrentSong(songs);
     const currentIndex = songs.indexOf(currentSong);
 
-    if (direction === 'forward') {
+    if (direction === "forward") {
       const nextIndex = currentIndex + 1;
       if (nextIndex !== songs.length) {
         selectSongHandler(songs[nextIndex]);
@@ -45,7 +40,7 @@ const App = () => {
       // setCurrentSong(songs[nextIndex % songs.length]);
     }
 
-    if (direction === 'backward') {
+    if (direction === "backward") {
       const prevIndex = currentIndex - 1;
       if (prevIndex !== -1) {
         selectSongHandler(songs[prevIndex]);
@@ -55,7 +50,7 @@ const App = () => {
     }
   }
 
-  function selectSongHandler(song) {
+  function selectSongHandler(song: Song): void {
     const newSongs = songs.map((mapedSong) => {
       if (mapedSong.id === song.id) {
         return {
@@ -74,12 +69,12 @@ const App = () => {
 
     if (isPlaying) {
       setTimeout(() => {
-        audioRef.current.play();
+        audioRef.current?.play();
       }, 150);
     }
   }
 
-  function timeUpdateHandler(event) {
+  function timeUpdateHandler(event: React.ChangeEvent<HTMLAudioElement>): void {
     const { currentTime, duration } = event.target;
     const animationPercentage = (currentTime / duration) * 100;
     setSongInfo({
@@ -90,38 +85,46 @@ const App = () => {
     });
   }
 
-  function dragHandler(event) {
-    const currentTime = event.target.value;
-    audioRef.current.currentTime = currentTime;
+  function dragHandler(event: React.ChangeEvent<HTMLInputElement>): void {
+    const currentTime = +event.target.value;
+    if (audioRef.current !== null) {
+      audioRef.current.currentTime = currentTime;
+    }
     setSongInfo({ ...songInfo, currentTime });
   }
 
-  function songEndedHandler() {
-    skipHandler('forward');
+  function songEndedHandler(): void {
+    skipHandler("forward");
   }
 
-  function formatTime(time) {
+  function formatTime(time: number): string {
     if (isNaN(time)) {
-      return '0:00';
+      return "0:00";
     } else {
       return (
-        Math.floor(time / 60) + ':' + ('0' + Math.floor(time % 60)).slice(-2)
+        Math.floor(time / 60) + ":" + ("0" + Math.floor(time % 60)).slice(-2)
       );
     }
   }
 
-  function fetchCurrentSong(songs) {
+  function fetchCurrentSong(songs: Song[]): Song {
     return songs.filter((song) => song.active)[0];
   }
 
   return (
-    <div className={`app ${isLibraryOpen ? 'library-active' : ''}`}>
-      <Nav isLibraryOpen={isLibraryOpen} setIsLibraryOpen={setIsLibraryOpen} />
-      <Song currentSong={fetchCurrentSong(songs)} />
+    <div
+      className={`transition-all duration-500 ease-linear ${
+        isLibraryOpen ? "ml-[30%]" : ""
+      }`}
+    >
+      <Navbar
+        isLibraryOpen={isLibraryOpen}
+        setIsLibraryOpen={setIsLibraryOpen}
+      />
+      <PlayerSong currentSong={fetchCurrentSong(songs)} />
       <Player
         songInfo={songInfo}
         isPlaying={isPlaying}
-        currentSong={fetchCurrentSong(songs)}
         playSongHandler={playSongHandler}
         skipHandler={skipHandler}
         dragHandler={dragHandler}
@@ -141,6 +144,4 @@ const App = () => {
       ></audio>
     </div>
   );
-};
-
-export default App;
+}
